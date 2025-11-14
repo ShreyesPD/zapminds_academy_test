@@ -5,11 +5,15 @@
 #  SECRETS_SCAN_OMIT_PATHS = "public/videos/**,.nuxt/**,.output/**,.netlify/**,dist/**"
 
 
+# netlify.toml (place at repo root)
 [build]
-  base = "front-end"
-  command = "npm run build"
+  base    = "front-end"
+  command = "npm ci && npm run build"
   publish = ".output/public"
-  functions = ".output/server"
 
-#[build.environment]
-#  NODE_ENV = "production"
+[functions]
+  # functions path relative to repo root (Netlify expects repo-root path)
+  directory = "front-end/.output/server"
+
+[dev]
+  command = "npm run --prefix front-end dev"
