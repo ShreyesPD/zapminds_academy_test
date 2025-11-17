@@ -42,9 +42,45 @@ const activeModule = computed(() =>
   modules.find((module) => module.id === activeModuleId.value)
 );
 
-const onSelectModule = (moduleId: string) => {
+// const onSelectModule = (moduleId: string) => {
+//   activeModuleId.value = moduleId;
+// };
+
+import { nextTick } from "vue";
+
+const HEADER_OFFSET = 80; // tweak this to match your fixed header height (px)
+
+const onSelectModule = async (moduleId: string) => {
+  // set active (this updates rendered content)
   activeModuleId.value = moduleId;
+
+  // wait for DOM updates to complete
+  await nextTick();
+
+  // 1) make sure the selected module item is visible inside the rail's scroll container
+  try {
+    const railScroll = moduleListScroll.value as HTMLElement | null;
+    if (railScroll) {
+      const listItem = railScroll.querySelector<HTMLElement>(`li[data-module-id="${moduleId}"]`);
+      if (listItem) {
+        // keep it within visible bounds of the rail; 'nearest' avoids jumping too far.
+        listItem.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    }
+  } catch (e) {
+    // ignore if anything goes wrong, we still attempt page scroll below
+    // console.warn(e)
+  }
+
+  // 2) scroll the page to the module content
+  const moduleEl = document.getElementById(`module-${moduleId}`);
+  if (moduleEl) {
+    // compute absolute Y with header offset
+    const targetY = Math.max(0, moduleEl.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET);
+    window.scrollTo({ top: targetY, behavior: "smooth" });
+  }
 };
+
 </script>
 
 <template>
@@ -128,6 +164,7 @@ const onSelectModule = (moduleId: string) => {
                 <li
                   v-for="(module, index) in modules"
                   :key="module.id"
+                  :data-module-id="module.id"
                   :class="[
                     $style['module-card'],
                     module.id === activeModuleId && $style['module-card--active'],
@@ -190,7 +227,7 @@ const onSelectModule = (moduleId: string) => {
       </div>
     </section>
 
-    <section v-if="activeModule" :class="$style.module">
+    <section v-if="activeModule" :class="$style.module" :id="`module-${activeModule.id}`">
       <div class="container grid">
         <header :class="$style['module-header']">
           <div>
