@@ -21,20 +21,20 @@ const credentials = reactive({
   remember: false,
 });
 
-const ssoProviders = [
-  {
-    id: "google",
-    label: UIElements.auth.ssoProviders.google,
-  },
-  {
-    id: "github",
-    label: UIElements.auth.ssoProviders.github,
-  },
-  {
-    id: "microsoft",
-    label: UIElements.auth.ssoProviders.microsoft,
-  },
-];
+// const ssoProviders = [
+//   {
+//     id: "google",
+//     label: UIElements.auth.ssoProviders.google,
+//   },
+//   {
+//     id: "github",
+//     label: UIElements.auth.ssoProviders.github,
+//   },
+//   {
+//     id: "microsoft",
+//     label: UIElements.auth.ssoProviders.microsoft,
+//   },
+// ];
 
 const highlights = [
   {
@@ -87,29 +87,29 @@ const onSubmit = async (event: Event) => {
   }
 };
 
-const onProviderLogin = async (providerId: AuthProvider) => {
-  if (isSubmitting.value) {
-    return;
-  }
+// const onProviderLogin = async (providerId: AuthProvider) => {
+//   if (isSubmitting.value) {
+//     return;
+//   }
 
-  if (!auth) {
-    formError.value = "Authentication is not available. Please refresh the page.";
-    return;
-  }
+//   if (!auth) {
+//     formError.value = "Authentication is not available. Please refresh the page.";
+//     return;
+//   }
 
-  formError.value = null;
-  isSubmitting.value = true;
+//   formError.value = null;
+//   isSubmitting.value = true;
 
-  try {
-    await auth.signInWithProvider(providerId);
-  } catch (error) {
-    formError.value =
-      error instanceof Error ? error.message : "Unable to continue with SSO.";
-  } finally {
-    // Provider SSO triggers redirect, but if it fails we release the lock.
-    isSubmitting.value = false;
-  }
-};
+//   try {
+//     await auth.signInWithProvider(providerId);
+//   } catch (error) {
+//     formError.value =
+//       error instanceof Error ? error.message : "Unable to continue with SSO.";
+//   } finally {
+//     // Provider SSO triggers redirect, but if it fails we release the lock.
+//     isSubmitting.value = false;
+//   }
+// };
 </script>
 
 <template>
@@ -188,13 +188,13 @@ const onProviderLogin = async (providerId: AuthProvider) => {
             {{ UIElements.auth.primaryCta }}
           </button>
 
-          <div :class="$style.divider">
+          <!-- <div :class="$style.divider">
             <span></span>
             <span>{{ UIElements.auth.secondaryTitle }}</span>
             <span></span>
-          </div>
+          </div> -->
 
-          <ul :class="$style.providers">
+          <!-- <ul :class="$style.providers">
             <li v-for="provider in ssoProviders" :key="provider.id">
               <button
                 type="button"
@@ -204,7 +204,7 @@ const onProviderLogin = async (providerId: AuthProvider) => {
                 {{ provider.label }}
               </button>
             </li>
-          </ul>
+          </ul> -->
 
           <p :class="$style['form-footer']">
             {{ UIElements.auth.createAccountPrompt }}

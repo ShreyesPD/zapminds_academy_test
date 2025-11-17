@@ -28,11 +28,11 @@ const formState = reactive({
   updates: true,
 });
 
-const ssoProviders = [
-  { id: "google", label: UIElements.auth.ssoProviders.google },
-  { id: "github", label: UIElements.auth.ssoProviders.github },
-  { id: "microsoft", label: UIElements.auth.ssoProviders.microsoft },
-];
+// const ssoProviders = [
+//   { id: "google", label: UIElements.auth.ssoProviders.google },
+//   { id: "github", label: UIElements.auth.ssoProviders.github },
+//   { id: "microsoft", label: UIElements.auth.ssoProviders.microsoft },
+// ];
 
 const cohortTracks = [
   { id: "python", label: "Python Foundations" },
@@ -105,37 +105,37 @@ const onSubmit = async (event: Event) => {
   }
 };
 
-const onProviderSignup = async (providerId: AuthProvider) => {
-  if (isSubmitting.value) {
-    return;
-  }
+// const onProviderSignup = async (providerId: AuthProvider) => {
+//   if (isSubmitting.value) {
+//     return;
+//   }
 
-  if (!auth) {
-    formError.value = "Authentication is not available. Please refresh the page.";
-    return;
-  }
+//   if (!auth) {
+//     formError.value = "Authentication is not available. Please refresh the page.";
+//     return;
+//   }
 
-  formError.value = null;
-  successMessage.value = null;
-  isSubmitting.value = true;
+//   formError.value = null;
+//   successMessage.value = null;
+//   isSubmitting.value = true;
 
-  try {
-    await auth.signInWithProvider(providerId);
-  } catch (error) {
-    formError.value =
-      error instanceof Error
-        ? error.message
-        : "Unable to continue with that provider.";
-    isSubmitting.value = false;
-  }
-};
+//   try {
+//     await auth.signInWithProvider(providerId);
+//   } catch (error) {
+//     formError.value =
+//       error instanceof Error
+//         ? error.message
+//         : "Unable to continue with that provider.";
+//     isSubmitting.value = false;
+//   }
+// };
 </script>
 
 <template>
   <section :class="$style.root">
     <div class="container grid" :class="$style.container">
       <aside :class="$style.panel">
-        <span :class="$style.badge">Launch cohort</span>
+        <!-- <span :class="$style.badge">Launch cohort</span> -->
         <h1 :class="$style.title">
           <VAnimatedTextByLetters label="Start building" :align="'left'" />
         </h1>
@@ -244,13 +244,13 @@ const onProviderSignup = async (providerId: AuthProvider) => {
             Create free account
           </button>
 
-          <div :class="$style.divider">
+          <!-- <div :class="$style.divider">
             <span></span>
             <span>or jump in with</span>
             <span></span>
-          </div>
+          </div> -->
 
-          <ul :class="$style.providers">
+          <!-- <ul :class="$style.providers">
             <li v-for="provider in ssoProviders" :key="provider.id">
               <button
                 type="button"
@@ -260,7 +260,7 @@ const onProviderSignup = async (providerId: AuthProvider) => {
                 {{ provider.label }}
               </button>
             </li>
-          </ul>
+          </ul> -->
         </form>
       </div>
     </div>
