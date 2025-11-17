@@ -964,7 +964,8 @@ const onLogout = async () => {
             <span :class="$style['hero-stats__value']">
               {{ UIElements.dashboard.xpLabel(totalXp) }}
             </span>
-            <small>{{ tierLabel }}</small>
+            <!-- <small>{{ tierLabel }}</small> -->
+            <small :class="$style.badge">{{ tierName }}</small>
           </div>
           <div>
             <span :class="$style['hero-stats__label']">Solved today</span>
