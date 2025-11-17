@@ -1710,13 +1710,13 @@ const onLogout = async () => {
             {{ UIElements.dashboard.continueCta }}
           </NuxtLink> -->
 
-          <NuxtLink :class="$style['hero-cta']" to="/courses/current">
+          <!-- <NuxtLink :class="$style['hero-cta']" to="/courses/current">
            {{ UIElements.auth.logoutCta }}
-          </NuxtLink>
+          </NuxtLink> -->
           
-          <!-- <button type="button" :class="$style['hero-secondary']" @click="onLogout">
+          <button type="button" :class="$style['hero-cta']" @click="onLogout">
             {{ UIElements.auth.logoutCta }}
-          </button> -->
+          </button>
         </div>
       </div>
 
