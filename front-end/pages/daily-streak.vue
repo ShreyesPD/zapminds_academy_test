@@ -248,7 +248,8 @@ const isClaimDisabled = computed(() => {
   return (
     isClaiming.value ||
     !streakStatus.value.canClaimToday ||
-    streakStatus.value.claimedToday
+    streakStatus.value.claimedToday ||
+    !hasClearedChallenge.value
   );
 });
 
