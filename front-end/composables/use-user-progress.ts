@@ -15,6 +15,7 @@ export type UserProgressResponse = {
     current: number;
     longest: number;
     lastCompletedDate: string | null;
+    claimedToday: boolean;
   };
   submissionsToday: number;
   reviewQueueCount: number;
@@ -40,6 +41,7 @@ const defaultProgress = (): UserProgressResponse => ({
     current: 0,
     longest: 0,
     lastCompletedDate: null,
+    claimedToday: false,
   },
   submissionsToday: 0,
   reviewQueueCount: 0,

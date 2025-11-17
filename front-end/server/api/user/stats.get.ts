@@ -183,6 +183,17 @@ export default defineEventHandler(async (event) => {
     earned_at: row.earned_at ?? null,
   }));
 
+    // compute claimedToday from the already-fetched streak row
+  const startOfDayUTC = new Date();
+  startOfDayUTC.setUTCHours(0, 0, 0, 0);
+
+  const lastCompletedDate = streak?.last_completed_date
+    ? new Date(streak.last_completed_date)
+    : null;
+
+  // claimedToday true when lastCompletedDate is on/after UTC start-of-day
+  const claimedToday = !!(lastCompletedDate && lastCompletedDate >= startOfDayUTC);
+
   return {
     xp: {
       total: xpTotal,
@@ -197,6 +208,7 @@ export default defineEventHandler(async (event) => {
       current: streak?.current_streak ?? 0,
       longest: streak?.longest_streak ?? 0,
       lastCompletedDate: streak?.last_completed_date ?? null,
+      claimedToday
     },
     submissionsToday: submissionsToday.count ?? 0,
     reviewQueueCount,

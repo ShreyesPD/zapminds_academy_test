@@ -47,7 +47,13 @@ const studentName = computed(() => profile.value.name ?? "Zapmind Student");
 const streakDays = computed(() => streakSummary.value.current ?? 0);
 const streakRewardEstimate = computed(() => 120 + (streakDays.value ?? 0) * 8);
 const totalXp = computed(() => xpSummary.value.total ?? 0);
-const solvedToday = computed(() => submissionsToday.value ?? 0);
+// const solvedToday = computed(() => submissionsToday.value ?? 0);
+const solvedToday = computed(() => {
+  const modulesSolved = Number(submissionsToday.value ?? 0);
+  const streakClaimed = !!(streakSummary.value?.claimedToday);
+  return modulesSolved + (streakClaimed ? 1 : 0);
+});
+
 const reviewQueue = computed(() => reviewQueueCount.value ?? 0);
 const tierLabel = computed(() => xpSummary.value.tierLabel);
 const tierName = computed(() => xpSummary.value.tier);
@@ -879,6 +885,16 @@ const greetingParts = computed(() => {
 
 const onSelectCourse = (id: string) => {
   selectedCourseId.value = id;
+    nextTick(() => {
+    const el = document.getElementById("course-detail");
+    if (!el) return;
+    // Optional: offset to accommodate a fixed header (change as needed)
+    const headerOffset = 80; // px, set to 0 if no fixed header
+    const rect = el.getBoundingClientRect();
+    const scrollTop = window.scrollY || window.pageYOffset;
+    const targetY = rect.top + scrollTop - headerOffset;
+    window.scrollTo({ top: targetY, behavior: "smooth" });
+  });
 };
 
 const topicStatusLabel = (status: TopicStatus) => {
@@ -1088,8 +1104,8 @@ const onLogout = async () => {
               </div>
 
               <div :class="$style['course-card__cta']">
-                <span>{{ UIElements.dashboard.courseAction }}</span>
-                <svg width="28" height="12" viewBox="0 0 28 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- <span>{{ UIElements.dashboard.courseAction }}</span> -->
+                <!-- <svg width="28" height="12" viewBox="0 0 28 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path
                     d="M20.5 1L26 6L20.5 11"
                     stroke="currentColor"
@@ -1098,7 +1114,7 @@ const onLogout = async () => {
                     stroke-linejoin="round"
                   />
                   <path d="M1 6H25.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                </svg>
+                </svg> -->
               </div>
             </button>
           </li>
@@ -1106,7 +1122,7 @@ const onLogout = async () => {
       </div>
     </section>
 
-    <section :class="$style['course-detail']" v-if="selectedCourse">
+    <section id="course-detail" :class="$style['course-detail']" v-if="selectedCourse">
       <div class="container grid">
         <header :class="$style['course-detail__header']">
           <h2>{{ selectedCourse.title }}</h2>
