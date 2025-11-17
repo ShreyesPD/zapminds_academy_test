@@ -58,6 +58,7 @@ const results = ref<
     output: string;
   }>
 >([]);
+const isFullscreen = ref(false);
 
 const didAllPass = computed(
   () => results.value.length > 0 && results.value.every((entry) => entry.status === "passed")
@@ -184,6 +185,41 @@ watch(
   }
 );
 
+// Toggle fullscreen mode for the editor canvas
+const toggleFullscreen = (): void => {
+  isFullscreen.value = !isFullscreen.value;
+
+  // When toggling, wait for DOM changes then tell Monaco to relayout
+  // so it fills the new container size.
+  nextTick(() => {
+    try {
+      monacoEditor.value?.layout();
+    } catch (e) {
+      // ignore if layout isn't available yet
+      // console.debug('[playground] monaco layout failed', e);
+    }
+  });
+  // Optionally lock scroll when in fullscreen (uncomment if desired)
+  document.body.style.overflow = isFullscreen.value ? 'hidden' : '';
+};
+
+// Close fullscreen when user presses Escape
+const onKeyDown = (ev: KeyboardEvent) => {
+  if (ev.key === "Escape" && isFullscreen.value) {
+    isFullscreen.value = false;
+    nextTick(() => monacoEditor.value?.layout());
+  }
+};
+
+onMounted(() => {
+  // existing onMounted stuff runs too; we also add Escape listener
+  window.addEventListener("keydown", onKeyDown);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", onKeyDown);
+});
+
 const submitCompletion = async (userCode: string) => {
   const moduleIdentifier = props.moduleId ?? props.exercise.moduleIdentifier;
   if (!moduleIdentifier) {
@@ -267,6 +303,9 @@ const submitCompletion = async (userCode: string) => {
   <div :class="$style.root">
     <div :class="$style.header">
       <div :class="$style.actions">
+        <button type="button" @click="toggleFullscreen">
+          {{ isFullscreen ? "Restore" : "Full Screen" }}
+        </button>
         <button type="button" :disabled="isRunning" @click="runTests">
           {{ isRunning ? "Running…" : "Run tests" }}
         </button>
@@ -281,13 +320,23 @@ const submitCompletion = async (userCode: string) => {
     </div>
 
     <div :class="$style.editor">
-      <div ref="editorContainer" :class="$style['editor-canvas']">
+      <!-- <div ref="editorContainer" :class="$style['editor-canvas']"> -->
+      <div ref="editorContainer" :class="[ $style['editor-canvas'], isFullscreen && $style['editor-canvas--fullscreen'] ]">
         <div v-if="!isEditorReady" :class="$style['editor-placeholder']">
           Initialising editor…
         </div>
       </div>
 
-      <aside :class="$style.results">
+      <div
+        v-if="isFullscreen"
+        :class="$style['fullscreen-exit']"
+        @click="toggleFullscreen"
+      >
+        ⤢ Exit Fullscreen
+      </div>
+
+
+      <aside ref="resultsContainer" :class="$style.results">
         <h4>Test run</h4>
 
         <p v-if="runtimeMessage" :class="$style.status">{{ runtimeMessage }}</p>
@@ -301,7 +350,7 @@ const submitCompletion = async (userCode: string) => {
           v-else-if="hasResults"
           :class="[$style.status, $style['status--warning']]"
         >
-          Keep iterating—at least one test is still failing.
+          Keep iterating — at least one test is failing.
         </p>
 
         <ul v-if="!runtimeMessage && hasResults">
@@ -342,6 +391,38 @@ const submitCompletion = async (userCode: string) => {
 </template>
 
 <style module lang="scss">
+
+.editor-canvas--fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  width: 100vw !important;
+  height: 100vh !important;
+  border-radius: 0 !important;
+  border: none !important;
+}
+
+
+.fullscreen-exit {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10000;
+  padding: 0.4rem 0.8rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: opacity 0.2s;
+}
+
+.fullscreen-exit:hover {
+  opacity: 0.9;
+}
+
+
 .root {
   display: grid;
   gap: 1.5rem;
