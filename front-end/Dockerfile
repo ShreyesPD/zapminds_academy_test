@@ -14,6 +14,11 @@ RUN npm ci
 COPY front-end/ ./
 COPY studio/ ../studio/
 
+# --- TEMP: check whether build-time env vars are present (DO NOT print secrets) ---
+RUN if [ -n "${NUXT_SUPABASE_URL:-}" ]; then echo "BUILD: NUXT_SUPABASE_URL=SET"; else echo "BUILD: NUXT_SUPABASE_URL=NOT_SET"; fi
+RUN if [ -n "${NUXT_SUPABASE_ANON_KEY:-}" ]; then echo "BUILD: NUXT_SUPABASE_ANON_KEY=SET"; else echo "BUILD: NUXT_SUPABASE_ANON_KEY=NOT_SET"; fi
+# -------------------------------------------------------------------------------
+
 # build
 RUN npm run build
 
