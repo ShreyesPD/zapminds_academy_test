@@ -1,0 +1,17 @@
+services:
+  nuxt:
+    build:
+      context: .
+      dockerfile: front-end/Dockerfile
+    image: zapminds_academy_test-nuxt:latest
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      NUXT_HOST: "0.0.0.0"
+      NUXT_PORT: "3000"
+    command: node .output/server/index.mjs
+
+volumes:
+  node_modules:
+

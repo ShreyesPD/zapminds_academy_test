@@ -1,0 +1,15 @@
+node_modules
+dist
+.nuxt
+.vscode
+.env
+.env.*.local
+npm-debug.log
+yarn-error.log
+.DS_Store
+.git
+coverage
+build
+docs
+studio
+the-franantic-run-of
