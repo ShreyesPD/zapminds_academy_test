@@ -33,7 +33,7 @@ export default defineNuxtPlugin(() => {
     };
   }
 
-  console.log("[supabase] Initializing client with URL:", supabaseUrl);
+  // console.log("[supabase] Initializing client with URL:", supabaseUrl);
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
@@ -43,7 +43,7 @@ export default defineNuxtPlugin(() => {
     },
   });
 
-  console.log("[supabase] Client initialized successfully");
+  console.log("db Client initialized successfully");
 
   return {
     provide: {

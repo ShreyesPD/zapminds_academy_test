@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { UIElements } from "~/assets/static-data/ui-elements";
+// import { UIElements } from "~/assets/static-data/ui-elements";
 
 const pageTitle = "Sign up – Zapminds Academy";
 
@@ -78,6 +78,17 @@ const onSubmit = async (event: Event) => {
   formError.value = null;
   successMessage.value = null;
   isSubmitting.value = true;
+
+  const check = await $fetch("/api/auth/check-email", {
+      method: "POST",
+      body: { email: formState.email }
+  });
+
+  if (check.exists) {
+    formError.value =
+      "An account with that email already exists. Try logging in or reset your password.";
+    return;
+  }
 
   try {
     const { session } = await auth.signUpWithPassword({
