@@ -86,7 +86,7 @@ const onSubmit = async (event: Event) => {
 
   if (check.exists) {
     formError.value =
-      "An account with that email already exists. Try logging in or reset your password.";
+      "An account with that email already exists. Try logging in.";
     return;
   }
 
