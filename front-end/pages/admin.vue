@@ -4,6 +4,7 @@ import { useStudentAuth } from "~/composables/use-auth";
 
 definePageMeta({
   layout: "default",
+  middleware: ["admin-auth"],
 });
 
 const pageTitle = "Admin Intelligence Center – Zapminds Academy";

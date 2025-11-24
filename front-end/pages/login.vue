@@ -78,7 +78,13 @@ const onSubmit = async (event: Event) => {
       remember: credentials.remember,
     });
     credentials.password = "";
-    await router.push("/dashboard");
+     if (auth.isAdmin?.value) {
+       // 👇 route where your admin page lives
+       await router.push("/admin");
+     } else {
+       await router.push("/dashboard");
+     }
+    // await router.push("/dashboard");
   } catch (error) {
     formError.value =
       error instanceof Error ? error.message : "Unable to sign in.";

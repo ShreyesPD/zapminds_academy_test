@@ -11,6 +11,7 @@ type StudentAuthState = {
   email: string | null;
   name: string | null;
   user_id: string | null;
+  role: string | null; 
 };
 
 const cookieOptions = {
@@ -65,6 +66,20 @@ const extractDisplayName = (user: User | null) => {
   return formatNameFromEmail(user.email);
 };
 
+const extractRole = (user: User | null) => {
+  if (!user) return null;
+
+  const userMeta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const appMeta = (user.app_metadata ?? {}) as Record<string, unknown>;
+
+  const raw =
+    (userMeta.role as string | undefined) ??
+    (appMeta.role as string | undefined);
+
+  return typeof raw === "string" ? raw : null;
+};
+
+
 const applySessionToState = (
   target: StudentAuthState,
   session: Session | null
@@ -74,6 +89,7 @@ const applySessionToState = (
     target.email = null;
     target.name = null;
     target.user_id = null;
+    target.role = null;
     return;
   }
 
@@ -82,6 +98,7 @@ const applySessionToState = (
   target.email = user.email ?? null;
   target.name = extractDisplayName(user);
   target.user_id = user.id;
+  target.role = extractRole(user); 
 };
 
 const applyUserToState = (target: StudentAuthState, user: User | null) => {
@@ -90,6 +107,7 @@ const applyUserToState = (target: StudentAuthState, user: User | null) => {
     target.email = null;
     target.name = null;
     target.user_id = null;
+    target.role = null;
     return;
   }
 
@@ -97,6 +115,7 @@ const applyUserToState = (target: StudentAuthState, user: User | null) => {
   target.email = user.email ?? null;
   target.name = extractDisplayName(user);
   target.user_id = user.id;
+  target.role = extractRole(user); 
 };
 
 const ensureSupabaseAuthWatcher = (
@@ -176,6 +195,7 @@ export const useStudentAuth = () => {
       email: null,
       name: null,
       user_id: null,
+      role: null, 
     }),
   });
 
@@ -184,6 +204,7 @@ export const useStudentAuth = () => {
     email: cookie.value?.email ?? null,
     name: cookie.value?.name ?? null,
     user_id: cookie.value?.user_id ?? null,
+    role: cookie.value?.role ?? null, 
   }));
 
   if (process.client) {
@@ -209,6 +230,7 @@ export const useStudentAuth = () => {
       email: null,
       name: null,
       user_id: null,
+      role: null, 
     };
 
     applyUserToState(nextState, user);
@@ -319,6 +341,7 @@ export const useStudentAuth = () => {
       email: null,
       name: null,
       user_id: null,
+      role: null, 
     };
   };
 
@@ -334,18 +357,39 @@ export const useStudentAuth = () => {
     return data.session ?? null;
   };
 
-  return {
-    authState: state,
-    isAuthenticated: computed(() => state.value.isAuthenticated),
-    profile: computed(() => ({
-      email: state.value.email,
-      name: state.value.name,
-      user_id: state.value.user_id,
-    })),
-    signInWithPassword,
-    signUpWithPassword,
-    signInWithProvider,
-    signOut,
-    refreshSession,
-  };
+  // return {
+  //   authState: state,
+  //   isAuthenticated: computed(() => state.value.isAuthenticated),
+  //   profile: computed(() => ({
+  //     email: state.value.email,
+  //     name: state.value.name,
+  //     user_id: state.value.user_id,
+  //   })),
+  //   signInWithPassword,
+  //   signUpWithPassword,
+  //   signInWithProvider,
+  //   signOut,
+  //   refreshSession,
+  // };
+
+  const isAuthenticated = computed(() => state.value.isAuthenticated);
+  const profile = computed(() => ({
+    email: state.value.email,
+    name: state.value.name,
+    user_id: state.value.user_id,
+    role: state.value.role, 
+  }));
+  const isAdmin = computed(() => state.value.role === "admin"); 
+
+return {
+  authState: state,
+  isAuthenticated,
+  profile,
+  isAdmin,           
+  signInWithPassword,
+  signUpWithPassword,
+  signInWithProvider,
+  signOut,
+  refreshSession,
+};
 };
