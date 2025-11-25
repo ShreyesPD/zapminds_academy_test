@@ -59,15 +59,66 @@ const formError = ref<string | null>(null);
 const successMessage = ref<string | null>(null);
 const isSubmitting = ref(false);
 
+const validateForm = () => {
+  // Reset any previous error
+  formError.value = null;
+
+  if (!formState.name.trim()) {
+    formError.value = "Please enter your full name.";
+    return false;
+  }
+
+  if (!formState.email.trim()) {
+    formError.value = "Please enter your email address.";
+    return false;
+  }
+
+  // Simple email format check
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailPattern.test(formState.email)) {
+    formError.value = "Please enter a valid email address.";
+    return false;
+  }
+
+  if (!formState.password) {
+    formError.value = "Please create a password.";
+    return false;
+  }
+
+  if (formState.password.length < 8) {
+    formError.value = "Your password must be at least 8 characters long.";
+    return false;
+  }
+
+  // if (!formState.track) {
+  //   formError.value = "Please choose your launch track.";
+  //   return false;
+  // }
+
+  if (!formState.consent) {
+    formError.value = "Please acknowledge the Honor Code & Community Guidelines to continue.";
+    return false;
+  }
+  return true;
+};
+
+
 const onSubmit = async (event: Event) => {
   event.preventDefault();
   if (isSubmitting.value) {
     return;
   }
 
-  if (!formState.consent) {
-    formError.value = "Please acknowledge the Honor Code to continue.";
-    return;
+  // if (!formState.consent) {
+  //   formError.value = "Please acknowledge the Honor Code to continue.";
+  //   return;
+  // }
+
+  successMessage.value = null;
+
+  const isValid = validateForm();
+  if (!isValid) {
+    return; 
   }
 
   if (!auth) {
@@ -75,8 +126,8 @@ const onSubmit = async (event: Event) => {
     return;
   }
 
-  formError.value = null;
-  successMessage.value = null;
+  // formError.value = null;
+  // successMessage.value = null;
   isSubmitting.value = true;
 
   const check = await $fetch("/api/auth/check-email", {
@@ -167,7 +218,7 @@ const onSubmit = async (event: Event) => {
       </aside>
 
       <div :class="$style.form">
-        <form :class="$style['form-card']" @submit="onSubmit" novalidate>
+        <form :class="$style['form-card']" @submit="onSubmit" novalidate ref="formRef">
           <p v-if="formError" :class="$style.error" role="alert">
             {{ formError }}
           </p>
@@ -234,15 +285,29 @@ const onSubmit = async (event: Event) => {
             </select>
           </fieldset>
 
-          <div :class="$style['form-meta']">
-            <label :class="$style.checkbox">
+         <div :class="$style['form-meta']">
+<!--             <label :class="$style.checkbox">
               <input v-model="formState.consent" type="checkbox" required />
               <span>I agree to the Honor Code & community guidelines.</span>
+            </label>
+-->
+            <label :class="$style.checkbox">
+              <input v-model="formState.consent" type="checkbox" required />
+              <span>
+                I agree to
+                <a 
+                  href="docs/code-and-community-guidelines.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Honor Code &amp; Community Guidelines
+                </a>
+              </span>
             </label>
 
             <label :class="$style.checkbox">
               <input v-model="formState.updates" type="checkbox" />
-              <span>Send me cohort reminders & progress tips.</span>
+              <span>Send me cohort reminders & progress tips</span>
             </label>
           </div>
 
