@@ -57,6 +57,28 @@ const auth = process.client ? useStudentAuth() : null;
 const formError = ref<string | null>(null);
 const isSubmitting = ref(false);
 
+const validateLogin = () => {
+  formError.value = null;
+
+  if (!credentials.email.trim()) {
+    formError.value = "Please enter your email address.";
+    return false;
+  }
+
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailPattern.test(credentials.email)) {
+    formError.value = "Please enter a valid email address.";
+    return false;
+  }
+
+  if (!credentials.password.trim()) {
+    formError.value = "Please enter your password.";
+    return false;
+  }
+
+  return true;
+};
+
 const onSubmit = async (event: Event) => {
   event.preventDefault();
   if (isSubmitting.value) {
@@ -67,6 +89,9 @@ const onSubmit = async (event: Event) => {
     formError.value = "Authentication is not available. Please refresh the page.";
     return;
   }
+
+  const isValid = validateLogin();
+  if (!isValid) return;
 
   formError.value = null;
   isSubmitting.value = true;
