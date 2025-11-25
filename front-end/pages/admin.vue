@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, onMounted, watch } from "vue";
 import { useStudentAuth } from "~/composables/use-auth";
+import useAdminDashboard from "~/composables/use-admin-dashboard";
 
 definePageMeta({
   layout: "default",
@@ -47,6 +48,53 @@ const selectTimeframe = (id: Timeframe) => {
   selectedTimeframe.value = id;
 };
 
+const { profile, isAuthenticated, isAdmin } = useStudentAuth();
+const operatorName = computed(() => profile.value.name ?? "Ops lead");
+
+// (composable already initialized earlier)
+
+// Fetch dashboard when authenticated as admin and whenever timeframe changes
+onMounted(() => {
+  if (process.client) {
+    // If user is already authenticated and admin, fetch immediately
+    if (isAuthenticated?.value && isAdmin?.value) {
+      try {
+        fetchDashboard({ timeframe: selectedTimeframe.value });
+      } catch (e) {
+        // noop
+      }
+    }
+    // We'll also watch auth below to trigger a fetch once auth becomes available
+    // (see watch on auth readiness further down)
+  }
+});
+
+watch(selectedTimeframe, (next) => {
+  if (process.client) {
+    if (isAuthenticated?.value && isAdmin?.value) {
+      try {
+        fetchDashboard({ timeframe: next });
+      } catch (e) {
+        // noop
+      }
+    }
+  }
+});
+
+// Trigger a fetch when auth becomes available and user is admin
+watch(
+  () => (isAuthenticated?.value && isAdmin?.value) ?? false,
+  (ready) => {
+    if (ready) {
+      try {
+        fetchDashboard({ timeframe: selectedTimeframe.value });
+      } catch (e) {
+        // noop
+      }
+    }
+  }
+);
+
 interface KpiCard {
   id: string;
   label: string;
@@ -56,136 +104,23 @@ interface KpiCard {
   context: string;
 }
 
-const kpisByTimeframe: Record<Timeframe, KpiCard[]> = {
-  "24h": [
-    {
-      id: "active-learners",
-      label: "Active learners",
-      value: "428",
-      helper: "Unique logins",
-      delta: 5.4,
-      context: "Lunch + midnight pods drove usage.",
-    },
-    {
-      id: "modules-cleared",
-      label: "Modules cleared",
-      value: "1,126",
-      helper: "Modules completed",
-      delta: 7.2,
-      context: "Automation labs replays trending.",
-    },
-    {
-      id: "session-length",
-      label: "Avg session length",
-      value: "48m",
-      helper: "Median dwell time",
-      delta: 3.1,
-      context: "Focus loops kept dwell above target.",
-    },
-    {
-      id: "xp-minted",
-      label: "XP minted",
-      value: "92k",
-      helper: "XP granted",
-      delta: 6.8,
-      context: "Code review auto-mints 41% of XP.",
-    },
-    {
-      id: "streak-health",
-      label: "Streak health",
-      value: "63%",
-      helper: "Streak claims",
-      delta: -2.4,
-      context: "Weekend dip — queue reminders.",
-    },
-  ],
-  "7d": [
-    {
-      id: "active-learners",
-      label: "Active learners",
-      value: "1,362",
-      helper: "Unique sign-ins",
-      delta: 8.9,
-      context: "Cohort 19 standups lifted volume.",
-    },
-    {
-      id: "modules-cleared",
-      label: "Modules cleared",
-      value: "6,842",
-      helper: "Modules completed",
-      delta: 9.6,
-      context: "Python + agentic sprints shipped.",
-    },
-    {
-      id: "session-length",
-      label: "Avg session length",
-      value: "51m",
-      helper: "Median dwell time",
-      delta: 2.7,
-      context: "Workflow challenges held attention.",
-    },
-    {
-      id: "xp-minted",
-      label: "XP minted",
-      value: "612k",
-      helper: "XP granted",
-      delta: 7.5,
-      context: "Mentor reviews minted 38% of XP.",
-    },
-    {
-      id: "streak-health",
-      label: "Streak health",
-      value: "71%",
-      helper: "Streak claims",
-      delta: 1.8,
-      context: "Daily SMS nudges paid off.",
-    },
-  ],
-  "30d": [
-    {
-      id: "active-learners",
-      label: "Active learners",
-      value: "4,988",
-      helper: "Unique sign-ins",
-      delta: 10.1,
-      context: "Team spaces rollout brought squads in.",
-    },
-    {
-      id: "modules-cleared",
-      label: "Modules cleared",
-      value: "27,416",
-      helper: "Modules completed",
-      delta: 6.3,
-      context: "Capstone approvals bundled for August.",
-    },
-    {
-      id: "session-length",
-      label: "Avg session length",
-      value: "49m",
-      helper: "Median dwell time",
-      delta: 1.1,
-      context: "Steady despite mid-month holidays.",
-    },
-    {
-      id: "xp-minted",
-      label: "XP minted",
-      value: "2.4M",
-      helper: "XP granted",
-      delta: 5.2,
-      context: "Evaluation quests minted weekly spikes.",
-    },
-    {
-      id: "streak-health",
-      label: "Streak health",
-      value: "68%",
-      helper: "Streak claims",
-      delta: -1.2,
-      context: "Need automation for dormants.",
-    },
-  ],
-};
+// KPI data now provided by server endpoint `/api/admin/dashboard`
 
-const activeKpis = computed(() => kpisByTimeframe[selectedTimeframe.value]);
+// API-backed sources (fall back to hardcoded constants)
+const { data: dashboardData, loading: dashboardLoading, error: dashboardError, fetch: fetchDashboard, refresh: refreshDashboard } = useAdminDashboard();
+
+const activeKpis = computed(() => dashboardData.value?.kpisByTimeframe?.[selectedTimeframe.value] ?? []);
+
+const trendCardsSource = computed(() => dashboardData.value?.trendCards ?? []);
+const segmentInsightsSource = computed(() => dashboardData.value?.segmentInsights ?? []);
+const funnelStagesSource = computed(() => dashboardData.value?.funnelStages ?? []);
+const usageHeatmapSource = computed(() => dashboardData.value?.usageHeatmap ?? []);
+const topActionsSource = computed(() => dashboardData.value?.topActions ?? []);
+const coursePulseSource = computed(() => dashboardData.value?.coursePulse ?? []);
+const courseMilestonesSource = computed(() => dashboardData.value?.courseMilestones ?? []);
+const adminTodosSource = computed(() => dashboardData.value?.adminTodos ?? []);
+const riskAlertsSource = computed(() => dashboardData.value?.riskAlerts ?? []);
+const managementBriefSource = computed(() => dashboardData.value?.managementBrief ?? []);
 
 const selectedTimeframeMeta = computed(() =>
   timeframeOptions.find((option) => option.id === selectedTimeframe.value)
@@ -198,8 +133,6 @@ const timeframeDescription = computed(
   () => selectedTimeframeMeta.value?.description ?? ""
 );
 
-const { profile } = useStudentAuth();
-const operatorName = computed(() => profile.value.name ?? "Ops lead");
 
 interface TrendCard {
   id: string;
@@ -211,38 +144,10 @@ interface TrendCard {
   target?: number;
 }
 
-const trendCards: TrendCard[] = [
-  {
-    id: "engagement-trend",
-    label: "Learning minutes / day",
-    values: [48, 52, 55, 58, 62, 71, 69, 74],
-    unit: "k mins",
-    change: 12.4,
-    annotation: "Uptick from automation lab release",
-    target: 65,
-  },
-  {
-    id: "retention-trend",
-    label: "7-day retention",
-    values: [68, 69, 69, 70, 72, 74, 73, 75],
-    unit: "%",
-    change: 3.1,
-    annotation: "Cohort 18 pacing ahead of avg",
-    target: 74,
-  },
-  {
-    id: "xp-trend",
-    label: "Avg XP / learner",
-    values: [118, 121, 126, 131, 129, 137, 140, 144],
-    unit: "XP",
-    change: 6.8,
-    annotation: "Code review automation driving XP",
-    target: 135,
-  },
-];
+// Trend cards supplied by server
 
-const sparklinePoints = (values: number[]) => {
-  if (!values.length) return "";
+const sparklinePoints = (values?: number[]) => {
+  if (!values || !values.length) return "";
   const width = 100;
   const height = 60;
   const step = values.length === 1 ? width : width / (values.length - 1);
@@ -260,8 +165,8 @@ const sparklinePoints = (values: number[]) => {
     .join(" ");
 };
 
-const sparklineTarget = (values: number[], target?: number) => {
-  if (!values.length || typeof target === "undefined") {
+const sparklineTarget = (values?: number[], target?: number) => {
+  if (!values || !values.length || typeof target === "undefined") {
     return 0;
   }
 
@@ -273,7 +178,7 @@ const sparklineTarget = (values: number[], target?: number) => {
   return height - normalized * height;
 };
 
-const lastValue = (values: number[]) => values[values.length - 1] ?? 0;
+const lastValue = (values?: number[]) => (values && values.length ? values[values.length - 1] : 0);
 
 interface SegmentInsight {
   id: string;
@@ -284,32 +189,7 @@ interface SegmentInsight {
   note: string;
 }
 
-const segmentInsights: SegmentInsight[] = [
-  {
-    id: "new-cohorts",
-    label: "New cohorts",
-    population: 287,
-    share: 32,
-    change: 11.4,
-    note: "Orientation automation converted 82% of signups.",
-  },
-  {
-    id: "returning-builders",
-    label: "Returning builders",
-    population: 512,
-    share: 57,
-    change: 4.1,
-    note: "Avg 3.2 sessions / user with 142 min dwell time.",
-  },
-  {
-    id: "reengaged",
-    label: "Re-engaged accounts",
-    population: 98,
-    share: 11,
-    change: -6.2,
-    note: "Need concierge nudges for dormant pros.",
-  },
-];
+// Segment insights supplied by server
 
 interface FunnelStage {
   id: string;
@@ -319,47 +199,12 @@ interface FunnelStage {
   helper: string;
 }
 
-const funnelStages: FunnelStage[] = [
-  {
-    id: "visitors",
-    label: "Visitors",
-    count: 4820,
-    conversion: 1,
-    helper: "Landing traffic",
-  },
-  {
-    id: "signups",
-    label: "Sign-ups",
-    count: 742,
-    conversion: 0.154,
-    helper: "Trials started",
-  },
-  {
-    id: "activated",
-    label: "Activated learners",
-    count: 536,
-    conversion: 0.722,
-    helper: "Completed onboarding",
-  },
-  {
-    id: "paying",
-    label: "Paying teams",
-    count: 202,
-    conversion: 0.377,
-    helper: "Seat plans",
-  },
-  {
-    id: "power-users",
-    label: "Power users",
-    count: 148,
-    conversion: 0.732,
-    helper: "150+ XP / week",
-  },
-];
-
-const maxFunnelCount = computed(() =>
-  Math.max(...funnelStages.map((stage) => stage.count))
-);
+// Funnel stages supplied by server
+const maxFunnelCount = computed(() => {
+  const stages = funnelStagesSource.value ?? [];
+  if (!stages.length) return 0;
+  return Math.max(...stages.map((stage: FunnelStage) => stage.count ?? 0));
+});
 
 const heatmapBuckets = [
   "6-9a",
@@ -376,43 +221,7 @@ interface HeatmapRow {
   highlight: string;
 }
 
-const usageHeatmap: HeatmapRow[] = [
-  {
-    day: "Mon",
-    values: [20, 58, 46, 42, 28, 12],
-    highlight: "Sprint kickoff traffic",
-  },
-  {
-    day: "Tue",
-    values: [24, 62, 44, 36, 26, 14],
-    highlight: "Ops review mid-morning",
-  },
-  {
-    day: "Wed",
-    values: [18, 55, 49, 38, 31, 18],
-    highlight: "Most code reviews shipped",
-  },
-  {
-    day: "Thu",
-    values: [22, 66, 52, 41, 27, 12],
-    highlight: "Capstone labs run",
-  },
-  {
-    day: "Fri",
-    values: [30, 71, 58, 46, 38, 20],
-    highlight: "Automation lab launch",
-  },
-  {
-    day: "Sat",
-    values: [14, 32, 41, 36, 24, 16],
-    highlight: "Weekend grind sessions",
-  },
-  {
-    day: "Sun",
-    values: [12, 24, 36, 30, 22, 14],
-    highlight: "Prep for Monday sprint",
-  },
-];
+// Usage heatmap supplied by server
 
 interface ActionItem {
   id: string;
@@ -422,36 +231,7 @@ interface ActionItem {
   note: string;
 }
 
-const topActions: ActionItem[] = [
-  {
-    id: "code-reviews",
-    label: "AI code reviews",
-    share: 28,
-    change: 9.2,
-    note: "Became default workflow for Cohort 18.",
-  },
-  {
-    id: "course-replays",
-    label: "Course replays",
-    share: 21,
-    change: 4.3,
-    note: "Primarily used on weekends.",
-  },
-  {
-    id: "xp-rush",
-    label: "XP rush quests",
-    share: 17,
-    change: -3.6,
-    note: "Need fresh challenge inventory.",
-  },
-  {
-    id: "team-dashboards",
-    label: "Team dashboards",
-    share: 11,
-    change: 6.1,
-    note: "Adopted by enterprise pilot.",
-  },
-];
+// Top actions supplied by server
 
 interface CoursePulse {
   id: string;
@@ -464,38 +244,7 @@ interface CoursePulse {
   watchPoint: string;
 }
 
-const coursePulse: CoursePulse[] = [
-  {
-    id: "agentic",
-    title: "Agentic AI Systems",
-    enrollment: 482,
-    completionRate: 76,
-    completionChange: 4.2,
-    satisfaction: 4.8,
-    xpShare: 34,
-    watchPoint: "Drop-off around research ops sprint.",
-  },
-  {
-    id: "ml-systems",
-    title: "ML Systems Reliability",
-    enrollment: 368,
-    completionRate: 68,
-    completionChange: -2.1,
-    satisfaction: 4.5,
-    xpShare: 27,
-    watchPoint: "Latency lab rewrite in progress.",
-  },
-  {
-    id: "python-automation",
-    title: "Python Automation Program",
-    enrollment: 552,
-    completionRate: 81,
-    completionChange: 3.5,
-    satisfaction: 4.9,
-    xpShare: 29,
-    watchPoint: "Scale mentor hours for August sprint.",
-  },
-];
+// Course pulse supplied by server
 
 interface CourseMilestone {
   id: string;
@@ -506,32 +255,7 @@ interface CourseMilestone {
   impact: "High" | "Medium" | "Low";
 }
 
-const courseMilestones: CourseMilestone[] = [
-  {
-    id: "genai-support",
-    title: "GenAI for Support Engineers",
-    owner: "Curriculum",
-    status: "Beta pilot ready",
-    eta: "Aug 12",
-    impact: "High",
-  },
-  {
-    id: "agents-lab",
-    title: "Autonomous Agents Ops Lab",
-    owner: "R&D Studio",
-    status: "Design freeze",
-    eta: "Aug 26",
-    impact: "Medium",
-  },
-  {
-    id: "mlops-refresh",
-    title: "MLOps Reliability Refresh",
-    owner: "Content Studio",
-    status: "QA + localization",
-    eta: "Jul 30",
-    impact: "High",
-  },
-];
+// Course milestones supplied by server
 
 interface AdminTodo {
   id: string;
@@ -543,35 +267,7 @@ interface AdminTodo {
   impact: "High" | "Medium" | "Low";
 }
 
-const adminTodos: AdminTodo[] = [
-  {
-    id: "audit-seats",
-    title: "Audit enterprise seat usage",
-    detail: "Match Zapminds Enterprise seats with learners active in the last 7d.",
-    owner: "Learning Ops",
-    due: "Today",
-    status: "In progress",
-    impact: "High",
-  },
-  {
-    id: "retention-experiment",
-    title: "Ship churn rescue experiment",
-    detail: "Launch concierge nudges to dormant Zapminds engineers.",
-    owner: "Lifecycle",
-    due: "Tomorrow",
-    status: "Blocked",
-    impact: "High",
-  },
-  {
-    id: "mentor-staffing",
-    title: "Staff mentor rotations",
-    detail: "Fill 14 mentor slots for August AI sprint.",
-    owner: "Student Success",
-    due: "Friday",
-    status: "Review",
-    impact: "Medium",
-  },
-];
+// Operational TODOs supplied by server
 
 type RiskSeverity = "low" | "medium" | "high";
 
@@ -584,32 +280,7 @@ interface RiskAlert {
   owner: string;
 }
 
-const riskAlerts: RiskAlert[] = [
-  {
-    id: "support-sla",
-    title: "Support SLA < 2h",
-    severity: "medium",
-    indicator: "92%",
-    detail: "Need 95%+ to protect mentor satisfaction + NPS.",
-    owner: "Support",
-  },
-  {
-    id: "infra-costs",
-    title: "GPU lab utilization",
-    severity: "high",
-    indicator: "78%",
-    detail: "Ops target <70% to keep lab queues under 5 min.",
-    owner: "Infra",
-  },
-  {
-    id: "cohort-drop",
-    title: "Cohort 17 drop-off",
-    severity: "low",
-    indicator: "-3.2%",
-    detail: "Within guardrails but trending downward.",
-    owner: "Programs",
-  },
-];
+// Risk alerts supplied by server
 
 interface ManagementBrief {
   id: string;
@@ -618,26 +289,7 @@ interface ManagementBrief {
   note: string;
 }
 
-const managementBrief: ManagementBrief[] = [
-  {
-    id: "streaks",
-    label: "Streak keepers",
-    value: "71%",
-    note: "Need >70% to keep the XP multiplier unlocked.",
-  },
-  {
-    id: "minutes",
-    label: "Avg minutes / learner",
-    value: "142m",
-    note: "Matches the Zapminds automation sprint target.",
-  },
-  {
-    id: "reviews",
-    label: "Review loop SLA",
-    value: "2.1h",
-    note: "92% of submissions cleared inside the 2h promise.",
-  },
-];
+// Management brief supplied by server
 
 const formatDelta = (value: number) => {
   if (!Number.isFinite(value)) {
@@ -650,11 +302,11 @@ const formatDelta = (value: number) => {
   return `${prefix}${formatted}%`;
 };
 
-const formatCount = (value: number) =>
-  new Intl.NumberFormat("en-US").format(value);
+const formatCount = (value?: number) =>
+  new Intl.NumberFormat("en-US").format(Number(value ?? 0));
 
-const formatConversion = (value: number) =>
-  `${Math.round(value * 100)}% step-through`;
+const formatConversion = (value?: number) =>
+  `${Math.round((value ?? 0) * 100)}% step-through`;
 
 const getHeatColor = (value: number) => {
   const normalized = Math.min(1, Math.max(0, value / 80));
@@ -690,7 +342,7 @@ const impactToClass = (impact: AdminTodo["impact"] | CourseMilestone["impact"]) 
         </div>
 
         <ul :class="$style['hero-brief']">
-          <li v-for="item in managementBrief" :key="item.id">
+          <li v-for="item in managementBriefSource" :key="item.id">
             <span>{{ item.label }}</span>
             <strong>{{ item.value }}</strong>
             <p>{{ item.note }}</p>
@@ -743,8 +395,8 @@ const impactToClass = (impact: AdminTodo["impact"] | CourseMilestone["impact"]) 
             </div>
             <span :class="$style.badge">Ops view</span>
           </header>
-          <div :class="$style['trend-grid']">
-            <div v-for="trend in trendCards" :key="trend.id" :class="$style['trend-card']">
+            <div :class="$style['trend-grid']">
+            <div v-for="trend in trendCardsSource" :key="trend.id" :class="$style['trend-card']">
               <div :class="$style['trend-header']">
                 <div>
                   <span>{{ trend.label }}</span>
@@ -780,7 +432,7 @@ const impactToClass = (impact: AdminTodo["impact"] | CourseMilestone["impact"]) 
             <p>Blend of new, returning, and reactivated learners.</p>
           </header>
           <ul>
-            <li v-for="segment in segmentInsights" :key="segment.id">
+            <li v-for="segment in segmentInsightsSource" :key="segment.id">
               <div>
                 <strong>{{ segment.label }}</strong>
                 <span>{{ formatCount(segment.population) }} learners</span>
@@ -809,13 +461,13 @@ const impactToClass = (impact: AdminTodo["impact"] | CourseMilestone["impact"]) 
             <p>Conversion path from visitor to power user.</p>
           </header>
           <ul>
-            <li v-for="stage in funnelStages" :key="stage.id">
+            <li v-for="stage in funnelStagesSource" :key="stage.id">
               <div>
                 <strong>{{ stage.label }}</strong>
                 <span>{{ formatCount(stage.count) }} people</span>
               </div>
               <div :class="$style['funnel-bar']">
-                <span :style="{ '--progress': stage.count / maxFunnelCount }"></span>
+                <span :style="{ '--progress': maxFunnelCount ? (stage.count / maxFunnelCount) : 0 }"></span>
               </div>
               <div>
                 <span>{{ formatConversion(stage.conversion) }}</span>
@@ -840,7 +492,7 @@ const impactToClass = (impact: AdminTodo["impact"] | CourseMilestone["impact"]) 
               <span v-for="bucket in heatmapBuckets" :key="bucket">{{ bucket }}</span>
               <span>Notes</span>
             </div>
-            <div v-for="row in usageHeatmap" :key="row.day" :class="$style['heatmap-row']">
+            <div v-for="row in usageHeatmapSource" :key="row.day" :class="$style['heatmap-row']">
               <span>{{ row.day }}</span>
               <div
                 v-for="(value, index) in row.values"
@@ -855,7 +507,7 @@ const impactToClass = (impact: AdminTodo["impact"] | CourseMilestone["impact"]) 
           </div>
 
           <ul :class="$style['actions-list']">
-            <li v-for="action in topActions" :key="action.id">
+            <li v-for="action in topActionsSource" :key="action.id">
               <div>
                 <strong>{{ action.label }}</strong>
                 <p>{{ action.note }}</p>
@@ -883,7 +535,7 @@ const impactToClass = (impact: AdminTodo["impact"] | CourseMilestone["impact"]) 
             <p>Enrollment, completion, and XP contribution.</p>
           </header>
           <div :class="$style['course-grid']">
-            <article v-for="course in coursePulse" :key="course.id" :class="$style['course-card']">
+            <article v-for="course in coursePulseSource" :key="course.id" :class="$style['course-card']">
               <div>
                 <h3>{{ course.title }}</h3>
                 <p>{{ course.watchPoint }}</p>
@@ -899,7 +551,7 @@ const impactToClass = (impact: AdminTodo["impact"] | CourseMilestone["impact"]) 
                 </div>
                 <div>
                   <dt>Satisfaction</dt>
-                  <dd>{{ course.satisfaction.toFixed(1) }}/5</dd>
+                  <dd>{{ (course.satisfaction ?? 0).toFixed(1) }}/5</dd>
                 </div>
               </dl>
               <div :class="$style['course-progress']">
@@ -908,7 +560,7 @@ const impactToClass = (impact: AdminTodo["impact"] | CourseMilestone["impact"]) 
                   <strong>{{ course.completionRate }}%</strong>
                 </div>
                 <div>
-                  <span :style="{ '--progress': course.completionRate / 100 }"></span>
+                  <span :style="{ '--progress': (course.completionRate ?? 0) / 100 }"></span>
                   <span
                     :class="[
                       $style['kpi-delta'],
@@ -930,8 +582,8 @@ const impactToClass = (impact: AdminTodo["impact"] | CourseMilestone["impact"]) 
             <h2>Curriculum roadmap</h2>
             <p>Upcoming launches and refreshes.</p>
           </header>
-          <ul>
-            <li v-for="milestone in courseMilestones" :key="milestone.id">
+            <ul>
+            <li v-for="milestone in courseMilestonesSource" :key="milestone.id">
               <div>
                 <strong>{{ milestone.title }}</strong>
                 <p>{{ milestone.status }}</p>
@@ -959,8 +611,8 @@ const impactToClass = (impact: AdminTodo["impact"] | CourseMilestone["impact"]) 
             <h2>Operational TODOs</h2>
             <p>High-leverage items to unblock.</p>
           </header>
-          <ul>
-            <li v-for="todo in adminTodos" :key="todo.id">
+            <ul>
+            <li v-for="todo in adminTodosSource" :key="todo.id">
               <div>
                 <strong>{{ todo.title }}</strong>
                 <p>{{ todo.detail }}</p>
@@ -994,8 +646,8 @@ const impactToClass = (impact: AdminTodo["impact"] | CourseMilestone["impact"]) 
             <h2>Risk & alert radar</h2>
             <p>Flags needing exec attention.</p>
           </header>
-          <ul>
-            <li v-for="risk in riskAlerts" :key="risk.id">
+            <ul>
+            <li v-for="risk in riskAlertsSource" :key="risk.id">
               <div>
                 <span
                   :class="[
