@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { UIElements } from "~/assets/static-data/ui-elements";
+import { useApiClient } from "~/composables/use-api-client";
 
 definePageMeta({
   layout: "default",
@@ -34,6 +35,74 @@ const formattedBadges = computed(() => {
 });
 
 const router = useRouter();
+
+// Certificate upload state and handlers
+const fileInputRef = ref<HTMLInputElement | null>(null);
+const isUploading = ref(false);
+const uploadStatus = ref<string | null>(null);
+
+const triggerCertificatePicker = () => {
+  fileInputRef.value?.click();
+};
+
+const handleCertificateFile = async (e: Event) => {
+  const input = e.target as HTMLInputElement | null;
+  const file = input?.files?.[0];
+  if (!file) return;
+
+  // Validate mime and size (max 1MB)
+  const allowed = ["application/pdf", "image/jpeg", "image/jpg"];
+  if (!allowed.includes(file.type)) {
+    uploadStatus.value = "Only PDF or JPG files are allowed";
+    return;
+  }
+
+  if (file.size > 1_048_576) {
+    uploadStatus.value = "File too large. Max size is 1MB.";
+    return;
+  }
+
+  isUploading.value = true;
+  uploadStatus.value = null;
+
+  try {
+    // Read file as base64
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ""));
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    // dataUrl looks like: data:<mime>;base64,<b64>
+    const b64 = dataUrl.split(",")[1] ?? "";
+
+    const { authFetch } = useApiClient();
+
+    const payload = {
+      filename: file.name,
+      mimeType: file.type,
+      size: file.size,
+      b64,
+    };
+
+    await authFetch('/api/user/upload-certificate', {
+      method: 'POST',
+      body: payload,
+    });
+
+    uploadStatus.value = 'Upload successful';
+    // Optionally refresh user progress or badges
+    refreshProgress?.();
+  } catch (err) {
+    console.error('[upload] Failed to upload certificate', err);
+    uploadStatus.value = 'Upload failed';
+  } finally {
+    isUploading.value = false;
+    // clear file input so same file can be re-selected
+    if (fileInputRef.value) fileInputRef.value.value = '';
+  }
+};
 
 // Listen for XP updates and refresh dashboard data
 let xpUpdateHandler: (() => void) | null = null;
@@ -1705,7 +1774,6 @@ const onLogout = async () => {
         </ul>
       </div>
 
-        <div :class="$style['hero-actions']">
           <!-- <NuxtLink :class="$style['hero-cta']" to="/courses/current">
             {{ UIElements.dashboard.continueCta }}
           </NuxtLink> -->
@@ -1714,9 +1782,25 @@ const onLogout = async () => {
            {{ UIElements.auth.logoutCta }}
           </NuxtLink> -->
           
+        <div :class="$style['hero-actions']">
           <button type="button" :class="$style['hero-cta']" @click="onLogout">
             {{ UIElements.auth.logoutCta }}
           </button>
+
+          <button type="button" :class="$style['hero-secondary']" @click="triggerCertificatePicker" :disabled="isUploading">
+            Upload certificates
+          </button>
+
+          <input
+            ref="fileInputRef"
+            type="file"
+            accept=".pdf,image/jpeg"
+            style="display: none"
+            @change="handleCertificateFile"
+          />
+
+          <span v-if="isUploading" style="opacity:0.9">Uploading…</span>
+          <span v-else-if="uploadStatus" style="opacity:0.9">{{ uploadStatus }}</span>
         </div>
       </div>
 
