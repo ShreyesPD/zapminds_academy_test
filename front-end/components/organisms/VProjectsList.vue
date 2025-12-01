@@ -68,7 +68,7 @@ const displayProjects = computed(() => {
   return props.projects.map((project, index) => ({
     ...project,
     title: newProjectNames[index] || project.title,
-    url: "https://zapcom.ai/",
+    url: "https://studio.zapcom.ai/",
   }));
 });
 </script>
